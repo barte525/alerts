@@ -1,9 +1,11 @@
 from rest_framework.views import APIView
 from django.http import HttpResponse, JsonResponse
 from crypto.models.Alert import Alert
-from crypto.models.Asset import Asset
 import json
-from django.db.utils import IntegrityError
+import requests
+from crypto.services.alert_checker import check_alert
+
+server_url = "http://host.docker.internal:5000/api/"
 
 
 class AlertView(APIView):
@@ -12,22 +14,26 @@ class AlertView(APIView):
         email = json_data.get('email', '')
         currency = json_data.get('currency', '')
         value = json_data.get('value', '')
-        asset_name = json_data.get('asset_name')
-        if not currency or not asset_name:
+        origin_asset_name = json_data.get('origin_asset_name', '')
+        current_value = json_data.get('current_value', '')
+        currencies = self.get_currencies_from_server()
+        if not all([email, currency, value, origin_asset_name, current_value]):
             return HttpResponse("Request does not contain all required query", status=400)
-        if value == '': value = 0
-        asset = Asset.objects.filter(name=asset_name)
-        if len(asset) == 0:
-            return HttpResponse("Asset with this name does not exist", status=400)
-        idA = asset[0]
-        alert_when_increases = value >= getattr(idA, "converter" + currency)
-        try:
-            created__alert = Alert(alert_value=value, email=email, idA=idA, currency=currency,
-                                   alert_when_increases=alert_when_increases)
-            created__alert.save()
-        except IntegrityError:
-            return HttpResponse("Currency must be: EUR/PLN/USD", status=400)
+        if currency not in currencies and origin_asset_name not in currencies:
+            return HttpResponse("This currency is not available", status=400)
+        alert_when_increases = value >= current_value
+        created__alert = Alert(alert_value=value, email=email, origin_asset_name=origin_asset_name,
+                               currency=currency, alert_when_increases=alert_when_increases)
+        created__alert.save()
+
         return JsonResponse(parse_alert(created__alert), status=200)
+
+    #do rozdzielenia na currency i wszystkie aktywa, zastanowic sie na ogarnieciem klas, na razie dziala na wszystkich
+    @staticmethod
+    def get_currencies_from_server():
+        response = requests.get(f'{server_url}assets', verify=False).json()
+        response_currencies = [asset['name'] for asset in response if asset['category'] == 'currency']
+        return response_currencies
 
     def get(self, request):
         email = request.GET.get('email', '')
@@ -41,37 +47,34 @@ class AlertView(APIView):
             alerts_resp.append(alert_resp)
         return JsonResponse(alerts_resp, safe=False)
 
-    def patch(self, request):
-        json_data = json.loads(request.body)
-        id = json_data.get('id', '')
-        email = json_data.get('email', '')
-        currency = json_data.get('currency', '')
-        value = json_data.get('value', '')
-        asset_name = json_data.get('asset_name', '')
-        print('a_name', asset_name)
-        try:
-            alert = Alert.objects.get(id=id)
-        except Alert.DoesNotExist:
-            return HttpResponse('Alert with given id does not exist', status=400)
-        if email:
-            alert.email = email
-        if currency:
-            alert.currency = currency
-        if asset_name:
-            asset = Asset.objects.filter(name=asset_name)
-            if len(asset) == 0:
-                return HttpResponse("Asset with this name does not exist", status=400)
-            alert.idA = asset[0]
-        if value:
-            idA = alert.idA
-            alert_when_increases = float(value) >= getattr(idA, "converter" + alert.currency)
-            alert.alert_when_increases = alert_when_increases
-            alert.alert_value = float(value)
-        try:
-            alert.save()
-        except IntegrityError:
-            return HttpResponse("Currency must be: EUR/PLN/USD", status=400)
-        return HttpResponse("Alert updated", status=200)
+    # def patch(self, request):
+    #     json_data = json.loads(request.body)
+    #     email = json_data.get('email', '')
+    #     currency = json_data.get('currency', '')
+    #     value = json_data.get('value', '')
+    #     origin_asset_name = json_data.get('origin_asset_name', '')
+    #     current_value = json_data.get('current_value', '')
+    #     currencies = self.get_currencies_from_server()
+    #     try:
+    #         alert = Alert.objects.get(id=id)
+    #     except Alert.DoesNotExist:
+    #         return HttpResponse('Alert with given id does not exist', status=400)
+    #     if origin_asset_name not in currencies or currency not in currencies:
+    #         return HttpResponse("This currency is not available", status=400)
+    #     if email:
+    #         alert.email = email
+    #     if currency:
+    #         alert.currency = currency
+    #     if origin_asset_name:
+    #         alert.origin_asset_name = origin_asset_name
+    #     if value and current_value:
+    #         if not value or not current_value:
+    #             return HttpResponse('Value requires current_value', status=400)
+    #         alert_when_increases = value >= current_value
+    #         alert.alert_when_increases = alert_when_increases
+    #         alert.alert_value = value
+    #     alert.save()
+    #     return HttpResponse("Alert updated", status=200)
 
     def delete(self, request):
         id = request.GET.get('id', '')
@@ -91,32 +94,16 @@ class AlertView(APIView):
 def parse_alert(alert):
     return {
             "id": alert.id,
-            "asset_type": Asset.objects.get(id=alert.idA.id).asset_type,
+            "origin_asset_name": alert.origin_asset_name,
             "value": alert.alert_value,
             "currency": alert.currency,
-            "asset_name": Asset.objects.get(id=alert.idA.id).name,
+            "alert_when_increases": alert.alert_when_increases,
             }
 
 
-def get_all_al(request):
-    email = request.GET.get('email', '')
-    if not email:
-        alerts = Alert.objects.all()
-    else:
-        alerts = Alert.objects.filter(email=email)
-        if len(alerts) == 0:
-            return HttpResponse("Alert with given email haven't been created", status=400)
-    alerts_resp = []
-    for alert in alerts:
-        alert_resp = parse_alert(alert)
-        alerts_resp.append(alert_resp)
-    return JsonResponse(alerts_resp, safe=False)
+def outher_check_alert(request):
+    asset = request.GET.get('asset', '')
+    response = list(requests.get(f'{server_url}asset-values', verify=False).json())
+    check_alert(asset, response)
+    return HttpResponse("Alerts checked", status=200)
 
-
-def send_email_with_password(request):
-    password = request.GET.get('password', '')
-    email = request.GET.get('email', '')
-    if not password or not email:
-        return HttpResponse("Query is missing", status=400)
-    Alert().send_email(email, '', '', '', password)
-    return HttpResponse("Mail sent", status=200)

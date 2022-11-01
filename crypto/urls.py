@@ -14,13 +14,10 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.urls import path
-from crypto.views.CryptoView import CryptoView
-from crypto.views.AlertView import AlertView, get_all_al, send_email_with_password
+from crypto.views.AlertView import AlertView, outher_check_alert
 
 
 urlpatterns = [
-    path('api/cryptocurrency/value/', CryptoView.as_view()),
     path('api/alert/', AlertView.as_view()),
-    path('api/alert/get_all', get_all_al),
-    path('send_password/', send_email_with_password)
+    path('api/check_alert/', outher_check_alert)
 ]
