@@ -11,19 +11,21 @@ server_url = "http://host.docker.internal:5000/api/"
 class AlertView(APIView):
     def post(self, request):
         json_data = json.loads(request.body)
+        print(json_data)
         email = json_data.get('email', '')
-        currency = json_data.get('currency', '')
-        value = json_data.get('value', '')
-        origin_asset_name = json_data.get('origin_asset_name', '')
-        current_value = json_data.get('current_value', '')
+        currency = json_data.get('targetCurrency', '')
+        value = json_data.get('targetValue', '')
+        origin_asset_name = json_data.get('originAssetName', '')
+        current_value = json_data.get('currentValue', '')
         currencies = self.get_currencies_from_server()
-        if not all([email, currency, value, origin_asset_name, current_value]):
+        print(email, currency, value, origin_asset_name, current_value)
+        if not all([email, currency, origin_asset_name]) or value == '' or current_value == '':
             return HttpResponse("Request does not contain all required query", status=400)
         if currency not in currencies and origin_asset_name not in currencies:
             return HttpResponse("This currency is not available", status=400)
         alert_when_increases = value >= current_value
         created__alert = Alert(alert_value=value, email=email, origin_asset_name=origin_asset_name,
-                               currency=currency, alert_when_increases=alert_when_increases)
+                               currency=currency, alert_when_increases=alert_when_increases, active=True)
         created__alert.save()
 
         return JsonResponse(parse_alert(created__alert), status=200)
@@ -93,11 +95,12 @@ class AlertView(APIView):
 
 def parse_alert(alert):
     return {
-            "id": alert.id,
-            "origin_asset_name": alert.origin_asset_name,
-            "value": alert.alert_value,
-            "currency": alert.currency,
+            "AlertId": alert.id,
+            "OriginAssetName": alert.origin_asset_name,
+            "Value": alert.alert_value,
+            "Currency": alert.currency,
             "alert_when_increases": alert.alert_when_increases,
+            "Active": alert.active
             }
 
 
