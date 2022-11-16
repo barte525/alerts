@@ -15,9 +15,11 @@ Including another URLconf
 """
 from django.urls import path
 from crypto.views.AlertView import AlertView, outher_check_alert
+from crypto.views.ReportView import ReportView
 
 
 urlpatterns = [
     path('api/alert/', AlertView.as_view()),
-    path('api/check_alert/', outher_check_alert)
+    path('api/check_alert/', outher_check_alert),
+    path('api/report/', ReportView.as_view())
 ]

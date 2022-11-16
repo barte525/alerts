@@ -25,6 +25,8 @@ def check_alert(asset, asset_values):
 
 def inner_check_alert(alert, new_price):
     if (new_price > alert.alert_value) == alert.alert_when_increases or new_price == alert.alert_value:
-        EmailSender().send_email(alert.email, alert.origin_asset_name, alert.alert_value, alert.currency, "")
+        email_sender = EmailSender()
+        email_sender.format_alert_message(alert.origin_asset_name, alert.alert_value, alert.currency)
+        email_sender.send_email(alert.email)
         alert.active = False
         alert.save()

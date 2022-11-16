@@ -22,27 +22,30 @@ class EmailSender:
     """
     password_length = 10
 
-    def send_email(self, receiver_mail, name, price, currency, new_password):
-        if not new_password:
-            self.format_message(currency, name, price, receiver_mail)
-        else:
-            self.format_password_message(receiver_mail, new_password)
+    message_text_report = """\
+    Total value of your wallet is {current_wallet_value} $ and {change} {change_value}% from last weak.
+    You have most of your money in {biggest_asset_name}, in which you have {asset_name_change}%.
+     """
+
+    def send_email(self, receiver_mail):
+        self.message["Subject"] = self.subject + receiver_mail
+        self.message["From"] = self.server_address
+        self.message["To"] = receiver_mail
         context = ssl.create_default_context()
         with smtplib.SMTP_SSL(self.server_address, port=self.port, context=context) as server:
             server.login(self.dev_email, env('email_password'))
             server.sendmail(self.dev_email, receiver_mail, self.message.as_string())
 
-    def format_message(self, currency, name, price, receiver_mail):
-        self.message["Subject"] = self.subject + receiver_mail
-        self.message["From"] = self.server_address
-        self.message["To"] = receiver_mail
+    def format_alert_message(self, currency, name, price):
         message_text_attachment = MIMEText(self.message_text.format(asset_name=name, price=price, currency=currency),
                                            "plain")
         self.message.attach(message_text_attachment)
 
-    def format_password_message(self, receiver_mail, new_password):
-        self.message["Subject"] = self.password_subject
-        self.message["From"] = self.server_address
-        self.message["To"] = receiver_mail
-        message_text_attachment = MIMEText(self.password_message_text.format(password=new_password), "plain")
+    def format_raport_message(self, current_wallet_value, wallet_value_week_ago, biggest_asset_name, biggest_asset_value):
+        change_value = int((current_wallet_value - wallet_value_week_ago) / current_wallet_value * 100)
+        change = "increased" if change_value > 0 else "descreased"
+        asset_name_change = int(biggest_asset_value/current_wallet_value*100)
+        message_text_attachment = MIMEText(self.message_text_report.format(
+            current_wallet_value=current_wallet_value, change=change, change_value=change_value,
+            biggest_asset_name=biggest_asset_name, asset_name_change=asset_name_change), "plain")
         self.message.attach(message_text_attachment)

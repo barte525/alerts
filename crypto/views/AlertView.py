@@ -9,6 +9,10 @@ server_url = "http://host.docker.internal:5000/api/"
 
 
 class AlertView(APIView):
+    currencies = ['eur', 'pln', 'jpy', 'gbp', 'huf', 'try', 'sek', 'chf', 'rub', 'nok', 'cad', 'inr', 'czk', 'hrk']
+    metals = ['gold', 'silver', 'platinum']
+    cryptos = ['btc', 'eth', 'ltc']
+
     def post(self, request):
         json_data = json.loads(request.body)
         print(json_data)
@@ -28,7 +32,7 @@ class AlertView(APIView):
                                currency=currency, alert_when_increases=alert_when_increases, active=True)
         created__alert.save()
 
-        return JsonResponse(parse_alert(created__alert), status=200)
+        return JsonResponse(self.parse_alert(created__alert), status=200)
 
     #do rozdzielenia na currency i wszystkie aktywa, zastanowic sie na ogarnieciem klas, na razie dziala na wszystkich
     @staticmethod
@@ -45,7 +49,7 @@ class AlertView(APIView):
             alerts = Alert.objects.filter(email=email)
         alerts_resp = []
         for alert in alerts:
-            alert_resp = parse_alert(alert)
+            alert_resp = self.parse_alert(alert)
             alerts_resp.append(alert_resp)
         return JsonResponse(alerts_resp, safe=False)
 
@@ -92,15 +96,21 @@ class AlertView(APIView):
         alert.delete()
         return HttpResponse("Alert deleted", status=200)
 
-
-def parse_alert(alert):
-    return {
-            "AlertId": alert.id,
-            "OriginAssetName": alert.origin_asset_name,
-            "Value": alert.alert_value,
-            "Currency": alert.currency,
-            "alert_when_increases": alert.alert_when_increases,
-            "Active": alert.active
+    def parse_alert(self, alert):
+        if alert.origin_asset_name in self.cryptos:
+            name = "crypto"
+        elif alert.origin_asset_name in self.metals:
+            name = "metal"
+        else:
+            name = "currency"
+        return {
+                "AlertId": alert.id,
+                "OriginAssetName": alert.origin_asset_name,
+                "Value": alert.alert_value,
+                "Currency": alert.currency,
+                "alert_when_increases": alert.alert_when_increases,
+                "Active": alert.active,
+                "OriginAssetType": name
             }
 
 
