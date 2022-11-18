@@ -5,7 +5,6 @@ from rest_framework.views import APIView
 import json
 from crypto.services.send_email import EmailSender
 
-
 class ReportView(APIView):
     def post(self, request):
         json_data = json.loads(request.body)

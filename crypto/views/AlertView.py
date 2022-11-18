@@ -4,14 +4,15 @@ from crypto.models.Alert import Alert
 import json
 import requests
 from crypto.services.alert_checker import check_alert
+from crypto.const import CURRENCIES, METALS, CRYPTOS
 
 server_url = "http://host.docker.internal:5000/api/"
 
 
 class AlertView(APIView):
-    currencies = ['eur', 'pln', 'jpy', 'gbp', 'huf', 'try', 'sek', 'chf', 'rub', 'nok', 'cad', 'inr', 'czk', 'hrk']
-    metals = ['gold', 'silver', 'platinum']
-    cryptos = ['btc', 'eth', 'ltc']
+    currencies = CURRENCIES
+    metals = METALS
+    cryptos = CRYPTOS
 
     def post(self, request):
         json_data = json.loads(request.body)
