@@ -31,7 +31,6 @@ class EmailSender:
          """
 
     def send_email(self, receiver_mail):
-        print("DUPA")
         self.message["Subject"] = self.subject + receiver_mail
         self.message["From"] = self.server_address
         self.message["To"] = receiver_mail
@@ -58,5 +57,4 @@ class EmailSender:
             message_text_attachment = MIMEText(self.message_text_report.format(
                 current_wallet_value=current_wallet_value, change=change, change_value=change_value,
                 biggest_asset_name=biggest_asset_name, asset_name_change=asset_name_change), "plain")
-        print("alo", message_text_attachment)
         self.message.attach(message_text_attachment)
