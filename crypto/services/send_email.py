@@ -1,6 +1,7 @@
 
 import smtplib
 import ssl
+import datetime
 
 from crypto.settings import env
 from email.mime.text import MIMEText
@@ -31,7 +32,8 @@ class EmailSender:
          """
 
     def send_email(self, receiver_mail):
-        self.message["Subject"] = self.subject + receiver_mail
+        self.message["Subject"] = self.subject + " " + datetime.datetime.now().strftime('%Y-%m-%d %H-%M') + " to " + \
+                                  receiver_mail
         self.message["From"] = self.server_address
         self.message["To"] = receiver_mail
         context = ssl.create_default_context()
@@ -54,7 +56,23 @@ class EmailSender:
                 biggest_asset_name=biggest_asset_name, asset_name_change=asset_name_change), "plain")
         else:
             change = "increased" if change_value > 0 else "descreased"
+            change_value = -1 * change_value if change_value < 0 else change_value
             message_text_attachment = MIMEText(self.message_text_report.format(
                 current_wallet_value=current_wallet_value, change=change, change_value=change_value,
                 biggest_asset_name=biggest_asset_name, asset_name_change=asset_name_change), "plain")
-        self.message.attach(message_text_attachment)
+        return message_text_attachment
+
+    def send_raports(self, emails):
+        with smtplib.SMTP(host="smtp.gmail.com", port=587) as smtp:
+            smtp.ehlo()
+            smtp.starttls()
+            smtp.login(self.dev_email, env('email_password'))
+            for email, data in emails.items():
+                msg = self.format_raport_message(data[0], data[1], data[2], data[3])
+                mail = MIMEMultipart()
+                mail['from'] = self.server_address
+                mail['to'] = email
+                mail['subject'] = self.subject + " " + datetime.datetime.now().strftime('%Y-%m-%d %H-%M') + " to " + \
+                                  email
+                mail.attach(msg)
+                smtp.send_message(mail)

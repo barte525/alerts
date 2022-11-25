@@ -16,14 +16,14 @@ class ReportView(APIView):
                     raport.get('walletValueWeekAgo', False) and raport.get('biggestAssetName', False),
                     raport.get('biggestAssetValue', False)):
                 return HttpResponse("Request does not contain all required query", status=400)
+        emails = {}
         for raport in raports:
             email = raport.get('email')
             currenctWalletValue = raport.get('currenctWalletValue')
             walletValueWeekAgo = raport.get('walletValueWeekAgo')
             biggestAssetName = raport.get('biggestAssetName')
             biggestAssetValue = raport.get('biggestAssetValue')
-            email_sender = EmailSender()
-            email_sender.format_raport_message(currenctWalletValue, walletValueWeekAgo, biggestAssetName,
-                                               biggestAssetValue)
-            email_sender.send_email(email)
+            emails[email] = (currenctWalletValue, walletValueWeekAgo, biggestAssetName, biggestAssetValue)
+        email_sender = EmailSender()
+        email_sender.send_raports(emails)
         return HttpResponse("Reports sent", status=200)
