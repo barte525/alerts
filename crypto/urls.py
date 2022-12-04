@@ -13,13 +13,14 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.urls import path
-from crypto.views.AlertView import AlertView, outher_check_alert
+from django.urls import path, include
+from crypto.views.AlertView import AlertView, outher_check_alert, change_on_email_for_user
 from crypto.views.ReportView import ReportView
 
 
 urlpatterns = [
     path('api/alert/', AlertView.as_view()),
     path('api/check_alert/', outher_check_alert),
-    path('api/report/', ReportView.as_view())
+    path('api/report/', ReportView.as_view()),
+    path('api/update-on-email/', change_on_email_for_user)
 ]

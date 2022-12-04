@@ -22,6 +22,7 @@ class AlertView(APIView):
         value = json_data.get('targetValue', '')
         origin_asset_name = json_data.get('originAssetName', '')
         current_value = json_data.get('currentValue', '')
+        on_email = json_data.get('onEmail', True)
         currencies = self.get_currencies_from_server()
         print(email, currency, value, origin_asset_name, current_value)
         if not all([email, currency, origin_asset_name]) or value == '' or current_value == '':
@@ -30,7 +31,8 @@ class AlertView(APIView):
             return HttpResponse("This currency is not available", status=400)
         alert_when_increases = value >= current_value
         created__alert = Alert(alert_value=value, email=email, origin_asset_name=origin_asset_name,
-                               currency=currency, alert_when_increases=alert_when_increases, active=True)
+                               currency=currency, alert_when_increases=alert_when_increases, active=True,
+                               on_email=on_email)
         created__alert.save()
 
         return JsonResponse(self.parse_alert(created__alert), status=200)
@@ -111,7 +113,8 @@ class AlertView(APIView):
                 "Currency": alert.currency,
                 "alert_when_increases": alert.alert_when_increases,
                 "Active": alert.active,
-                "OriginAssetType": name
+                "OriginAssetType": name,
+                "onEmail": alert.on_email
             }
 
 
@@ -121,3 +124,12 @@ def outher_check_alert(request):
     check_alert(asset, response)
     return HttpResponse("Alerts checked", status=200)
 
+
+def change_on_email_for_user(request):
+    email = request.GET.get('email', '')
+    on_email = request.GET.get('onEmail', '')
+    if not email or (on_email != 'True' and on_email != 'False'):
+        return HttpResponse("Request does not contain all required query", status=400)
+    on_email_bool = True if on_email == 'True' else False
+    Alert.objects.filter(email=email).update(on_email=on_email_bool)
+    return HttpResponse("Alerts updated", status=200)

@@ -8,6 +8,7 @@ class Alert(models.Model):
     currency = models.CharField(max_length=30)
     alert_when_increases = models.BooleanField(default=True)
     active = models.BooleanField(default=True)
+    on_email = models.BooleanField(default=True)
 
 
 
