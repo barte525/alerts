@@ -13,17 +13,19 @@ class ReportView(APIView):
             raports.append(raport)
         for raport in raports:
             if not (raport.get('email', False) and raport.get('currenctWalletValue', False) and
-                    raport.get('walletValueWeekAgo', False) and raport.get('biggestAssetName', False),
-                    raport.get('biggestAssetValue', False)):
+                    raport.get('currencyPreference', False)):
                 return HttpResponse("Request does not contain all required query", status=400)
         emails = {}
         for raport in raports:
             email = raport.get('email')
             currenctWalletValue = raport.get('currenctWalletValue')
-            walletValueWeekAgo = raport.get('walletValueWeekAgo')
-            biggestAssetName = raport.get('biggestAssetName')
-            biggestAssetValue = raport.get('biggestAssetValue')
-            emails[email] = (currenctWalletValue, walletValueWeekAgo, biggestAssetName, biggestAssetValue)
+            walletValueWeekAgo = raport.get('walletValueWeekAgo', 0)
+            biggestAssetName = raport.get('biggestAssetName', None)
+            biggestAssetValue = raport.get('biggestAssetValue', None)
+            currencyPreference = raport.get('currencyPreference')
+            if currencyPreference not in ['eur', 'usd', 'pln']:
+                return HttpResponse("Currency preference is not valid", status=400)
+            emails[email] = (currenctWalletValue, walletValueWeekAgo, biggestAssetName, biggestAssetValue, currencyPreference)
         email_sender = EmailSender()
         email_sender.send_raports(emails)
         return HttpResponse("Reports sent", status=200)

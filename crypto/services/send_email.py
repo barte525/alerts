@@ -20,11 +20,25 @@ class EmailSender:
     password_length = 10
 
     message_text_report = """\
-    Total value of your wallet is {current_wallet_value}$ and {change} {change_value}% from last weak. You have most of your money in {biggest_asset_name}, in which you have {asset_name_change}% of your wallet.
+    Total value of your wallet is {current_wallet_value}{currency_preference} and {change} {change_value}% from last weak. You have most of your money in {biggest_asset_name}, in which you have {asset_name_change}% of your wallet.
      """
     message_text_report_equal = """\
         Total value of your wallet did not change from last weak. You have most of your money in {biggest_asset_name}, in which you have {asset_name_change}% of your wallet.
          """
+
+    message_text_report_without_biggest = """\
+        Total value of your wallet is {current_wallet_value}{currency_preference} and {change} {change_value}% from last weak. You don't have dominating asset.
+         """
+
+    message_text_report_equal_without_biggest = """\
+            Total value of your wallet did not change from last weak. You don't have dominating asset.
+             """
+
+    code_to_sign = {
+        'usd': '$',
+        'pln': 'zl',
+        'eur': '€'
+    }
 
     def send_alerts(self, emails):
         with smtplib.SMTP(host="smtp.gmail.com", port=587) as smtp:
@@ -48,20 +62,35 @@ class EmailSender:
                                            "plain")
         return message_text_attachment
 
-    def format_raport_message(self, current_wallet_value, wallet_value_week_ago, biggest_asset_name, biggest_asset_value):
-        change_value = int((current_wallet_value - wallet_value_week_ago) / wallet_value_week_ago * 100)
-        asset_name_change = int(biggest_asset_value/current_wallet_value*100)
+    def format_raport_message(self, current_wallet_value, wallet_value_week_ago, biggest_asset_name, biggest_asset_value,
+                              currency_preference):
+        if current_wallet_value == 0:
+            return MIMEText("You don't have any assets added in our service", 'plain')
+        if wallet_value_week_ago != 0:
+            change_value = int((current_wallet_value - wallet_value_week_ago) / wallet_value_week_ago * 100)
+        else:
+            change_value = 'inf'
+        asset_name_change = int(biggest_asset_value/current_wallet_value*100) if biggest_asset_value else None
+        currency_preference = self.code_to_sign[currency_preference]
         if biggest_asset_name not in METALS:
             biggest_asset_name = biggest_asset_name.upper()
         if change_value == 0:
-            message_text_attachment = MIMEText(self.message_text_report_equal.format(
-                biggest_asset_name=biggest_asset_name, asset_name_change=asset_name_change), "plain")
+            if biggest_asset_name and asset_name_change:
+                message_text_attachment = MIMEText(self.message_text_report_equal.format(
+                    biggest_asset_name=biggest_asset_name, asset_name_change=asset_name_change), "plain")
+            else:
+                message_text_attachment = MIMEText(self.message_text_report_equal_without_biggest, 'plain')
         else:
-            change = "increased" if change_value > 0 else "descreased"
-            change_value = -1 * change_value if change_value < 0 else change_value
-            message_text_attachment = MIMEText(self.message_text_report.format(
-                current_wallet_value=current_wallet_value, change=change, change_value=change_value,
-                biggest_asset_name=biggest_asset_name, asset_name_change=asset_name_change), "plain")
+            change = "increased" if change_value > 0 or change_value == 'inf' else "descreased"
+            change_value = -1 * change_value if change_value < 0 and change_value != 'inf' else change_value
+            if biggest_asset_name and asset_name_change:
+                message_text_attachment = MIMEText(self.message_text_report.format(
+                    current_wallet_value=current_wallet_value, change=change, change_value=change_value,
+                    biggest_asset_name=biggest_asset_name, asset_name_change=asset_name_change, currency_preference=currency_preference), "plain")
+            else:
+                message_text_attachment = MIMEText(self.message_text_report_without_biggest.format(
+                    current_wallet_value=current_wallet_value, change=change, change_value=change_value,
+                    currency_preference=currency_preference), "plain")
         return message_text_attachment
 
     def send_raports(self, emails):
@@ -70,7 +99,7 @@ class EmailSender:
             smtp.starttls()
             smtp.login(self.dev_email, env('email_password'))
             for email, data in emails.items():
-                msg = self.format_raport_message(data[0], data[1], data[2], data[3])
+                msg = self.format_raport_message(data[0], data[1], data[2], data[3], data[4])
                 mail = MIMEMultipart()
                 mail['from'] = self.server_address
                 mail['to'] = email

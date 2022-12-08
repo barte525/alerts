@@ -9,12 +9,13 @@ def send_ios_notification(notifications):
     list_of_notifications = parse_dict_to_list_of_jl(notifications)
     chanel_layer = get_channel_layer()
     print(" list", list_of_notifications)
-    async_to_sync(chanel_layer.group_send)(
-        'test',
-        {
-            'type': 'chat_message',
-            'message': list_of_notifications
-        })
+    if list_of_notifications:
+        async_to_sync(chanel_layer.group_send)(
+            'test',
+            {
+                'type': 'chat_message',
+                'message': list_of_notifications
+            })
 
 
 def parse_dict_to_list_of_jl(notifications):
