@@ -81,8 +81,8 @@ class EmailSender:
             else:
                 message_text_attachment = MIMEText(self.message_text_report_equal_without_biggest, 'plain')
         else:
-            change = "increased" if change_value > 0 or change_value == 'inf' else "descreased"
-            change_value = -1 * change_value if change_value < 0 and change_value != 'inf' else change_value
+            change = "increased" if (isinstance(change_value, int) and change_value > 0) or change_value == 'inf' else "descreased"
+            change_value = -1 * change_value if (isinstance(change_value, int) and change_value < 0) and change_value != 'inf' else change_value
             if biggest_asset_name and asset_name_change:
                 message_text_attachment = MIMEText(self.message_text_report.format(
                     current_wallet_value=current_wallet_value, change=change, change_value=change_value,
