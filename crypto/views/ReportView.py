@@ -20,6 +20,8 @@ class ReportView(APIView):
             email = raport.get('email')
             currenctWalletValue = raport.get('currenctWalletValue')
             walletValueWeekAgo = raport.get('walletValueWeekAgo', 0)
+            if walletValueWeekAgo is None:
+                walletValueWeekAgo = 0
             biggestAssetName = raport.get('biggestAssetName', None)
             biggestAssetValue = raport.get('biggestAssetValue', None)
             currencyPreference = raport.get('currencyPreference')
