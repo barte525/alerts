@@ -57,7 +57,7 @@ class EmailSender:
                 mail.attach(msg)
                 smtp.send_message(mail)
 
-    def format_alert_message(self, currency, name, price):
+    def format_alert_message(self, currency, price, name):
         message_text_attachment = MIMEText(MESSAGE_TEXT.format(asset_name=name, price=price, currency=currency),
                                            "plain")
         return message_text_attachment
