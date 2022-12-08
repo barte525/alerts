@@ -72,7 +72,7 @@ class EmailSender:
             change_value = 'inf'
         asset_name_change = int(biggest_asset_value/current_wallet_value*100) if biggest_asset_value else None
         currency_preference = self.code_to_sign[currency_preference]
-        if biggest_asset_name not in METALS:
+        if biggest_asset_name not in METALS and biggest_asset_name:
             biggest_asset_name = biggest_asset_name.upper()
         if change_value == 0:
             if biggest_asset_name and asset_name_change:
