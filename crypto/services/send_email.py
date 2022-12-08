@@ -66,6 +66,7 @@ class EmailSender:
                               currency_preference):
         if current_wallet_value == 0:
             return MIMEText("You don't have any assets added in our service", 'plain')
+        current_wallet_value = round(current_wallet_value, 2)
         if wallet_value_week_ago != 0:
             change_value = int((current_wallet_value - wallet_value_week_ago) / wallet_value_week_ago * 100)
         else:
